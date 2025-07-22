@@ -167,12 +167,15 @@ def evaluate_forecast(true_y, pred_y):
 st.set_page_config(layout="wide")
 st.title("📈 AI-Driven Forecast & Resilience Simulator")
 
-st.sidebar.header("📁 Upload Sales Data")
-uploaded_file = st.sidebar.file_uploader("Upload CSV", type=["csv"])
-if uploaded_file:
+uploaded_file = st.file_uploader("Upload your sales data CSV", type=["csv"])
+
+if uploaded_file is not None:
     df_raw = pd.read_csv(uploaded_file)
+    st.success("Data successfully loaded!")
+    st.write(df_raw.head())
 else:
-    df_raw = pd.read_csv(r"C:\\Users\\Dell\\Downloads\\sales_data.csv")
+    st.warning("Please upload a CSV file to proceed.")
+
 
 required_cols = {'product_id', 'date', 'sales'}
 if not required_cols.issubset(df_raw.columns):

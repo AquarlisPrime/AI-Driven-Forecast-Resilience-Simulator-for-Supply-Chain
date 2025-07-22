@@ -6,6 +6,8 @@ This platform is a modular, AI-powered application MVP, designed to simulate, fo
 
 Whether you're managing global logistics or prototyping smart factories, this tool turns your supply chain into a living, learning system.
 
+Streamlit link: https://withouttensorflowmaincodepy-udwyn4fyw3zs2xkazszisq.streamlit.app/
+
 ---
 
 ## 1️. Tech Stack

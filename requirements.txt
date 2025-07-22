@@ -1,0 +1,11 @@
+streamlit
+pandas
+numpy
+prophet
+scikit-learn
+xgboost
+matplotlib
+shap
+plotly
+tensorflow
+pyvis

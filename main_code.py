@@ -48,12 +48,9 @@ def draw_pyvis_graph(graph):
     components.html(html, height=450, scrolling=True)
 
 
-
-# --- Helper Functions ---
 def train_prophet(df, forecast_days, start_date=None):
     model = Prophet()
 
-    # Optional filtering based on forecast start date
     if start_date is not None:
         df = df[df['ds'] <= start_date]
         if df.empty:
@@ -61,7 +58,6 @@ def train_prophet(df, forecast_days, start_date=None):
 
     model.fit(df)
 
-    # Ensure future starts right after last date in training data
     last_train_date = df['ds'].max()
     if start_date is not None and start_date > last_train_date:
         future_start = start_date
@@ -171,11 +167,10 @@ def evaluate_forecast(true_y, pred_y):
     return mape, rmse, mae
 
 
-# --- Streamlit App ---
 st.set_page_config(layout="wide")
 st.title("📈 AI-Driven Forecast & Resilience Simulator")
 
-st.sidebar.header("📁 Upload Sales Data")
+st.sidebar.header(" Upload Sales Data")
 uploaded_file = st.sidebar.file_uploader("Upload CSV", type=["csv"])
 if uploaded_file:
     df_raw = pd.read_csv(uploaded_file)
@@ -184,7 +179,7 @@ else:
 
 required_cols = {'product_id', 'date', 'sales'}
 if not required_cols.issubset(df_raw.columns):
-    st.error("❌ CSV must contain columns: product_id, date, sales")
+    st.error(" CSV must contain columns: product_id, date, sales")
     st.stop()
 
 
@@ -196,13 +191,10 @@ df['ds'] = pd.to_datetime(df['ds'])
 min_date = df['ds'].min().date()
 max_date = df['ds'].max().date()
 
-# --- Select Forecast Start Date ---
 forecast_start = st.date_input("📅 Forecast Start Date", value=max_date + timedelta(days=1), min_value=min_date)
 
-# --- Select Forecast End Date ---
 forecast_end = st.date_input("📅 Forecast End Date", value=forecast_start + timedelta(days=90), min_value=forecast_start)
 
-# Convert to Timestamp for timedelta calculation
 forecast_start_ts = pd.to_datetime(forecast_start)
 forecast_end_ts = pd.to_datetime(forecast_end)
 
@@ -226,9 +218,8 @@ mape_p, rmse_p, mae_p = evaluate_forecast(true_y, forecast_prophet['yhat'][-30:]
 mape_x, rmse_x, mae_x = evaluate_forecast(true_y, forecast_xgb['yhat'][:30].values)
 mape_l, rmse_l, mae_l = evaluate_forecast(true_y, forecast_lstm['yhat'][:30].values)
 
-import seaborn as sns  # Add this import at top if not already there
+import seaborn as sns  
 
-# Create model comparison DataFrame
 metrics_df = pd.DataFrame({
     'Model': ['Prophet', 'XGBoost', 'LSTM'],
     'MAPE': [mape_p, mape_x, mape_l],
@@ -238,20 +229,17 @@ metrics_df = pd.DataFrame({
 
 st.markdown("### 📊 Model Comparison")
 
-# Format numeric columns and highlight best model
 float_cols = metrics_df.select_dtypes(include='number').columns
 
-# Highlight the best (lowest) values per row for MAPE, RMSE, MAE
 def highlight_best(s):
     is_min = s == s.min()
     return ['background-color: lightgreen' if v else '' for v in is_min]
 
-# Apply formatting + conditional styling
 styled_df = (
     metrics_df.style
     .format({col: "{:.2f}" for col in float_cols})
-    .apply(highlight_best, subset=float_cols, axis=0)  # highlight best per column
-    .background_gradient(cmap="OrRd", subset=float_cols)  # color-code errors
+    .apply(highlight_best, subset=float_cols, axis=0)  
+    .background_gradient(cmap="OrRd", subset=float_cols)  
 )
 
 st.markdown("### 📊 Model Comparison")
@@ -297,7 +285,6 @@ elif model_choice == "LSTM":
     fig = go.Figure(go.Scatter(x=forecast_lstm['ds'], y=forecast_lstm['yhat'], name='LSTM Forecast', line=dict(color='orange')))
     st.plotly_chart(fig)
 
-# --- Phase 2 Placeholder ---
 st.markdown("---")
 st.header("🚧 Digital Twin Simulation")
 
@@ -340,7 +327,6 @@ try:
     st.subheader("📍 Live Network Graph")
     draw_pyvis_graph(G)
 
-    # 📦 Node Inventory Controls
     st.subheader("📦 Node Inventory Controls")
     inventory_state = {}
     cols = st.columns(len(G.nodes))
@@ -350,7 +336,6 @@ try:
                 f"{node} Inventory", 0, 1000, 500, key=f"inv_{node}"
             )
 
-    # 🚚 Transit Delay Adjustments
     st.subheader("🚚 Transit Delay Adjustments")
     delay_state = {}
     for edge in G.edges:
@@ -363,7 +348,7 @@ try:
             value=current,
             key=f"delay_{src}_{dst}"
         )
-        G.edges[edge]['transit_days'] = delay_state[edge]  # Apply live update
+        G.edges[edge]['transit_days'] = delay_state[edge]  
 
 except Exception as e:
     st.error(f"❌ Error parsing JSON: {e}")
@@ -385,7 +370,6 @@ def disruption_heatmap(graph):
 
 import io
 
-# --- Transit Delay Heatmap ---
 st.subheader("🌡️ Transit Delay Heatmap")
 heat = disruption_heatmap(G)
 fig_heat, ax_heat = plt.subplots(figsize=(9, 7), dpi=100)
@@ -397,7 +381,6 @@ buf1 = io.BytesIO()
 fig_heat.savefig(buf1, format="png", bbox_inches='tight')
 st.image(buf1)
 
-# --- Simulate Cost Impacts ---
 st.subheader("💰 Simulate Cost Impacts")
 multiplier = st.slider("Disruption Cost Multiplier", 1.0, 5.0, 1.5)
 total_costs = {e: G.edges[e]['cost'] * multiplier for e in G.edges}
@@ -405,7 +388,6 @@ cost_df = pd.DataFrame.from_dict(total_costs, orient='index', columns=['Simulate
 cost_df.index = [f"{e[0]} ➜ {e[1]}" for e in cost_df.index]
 st.dataframe(cost_df.style.format("{:.2f}"))
 
-# --- Seasonal Demand Chart ---
 st.subheader("📊 Past Disruptions / Seasonal Demand")
 fig_season, ax_season = plt.subplots(figsize=(9, 7), dpi=100)
 df_season = df.copy()
@@ -422,7 +404,6 @@ buf2 = io.BytesIO()
 fig_season.savefig(buf2, format="png", bbox_inches='tight')
 st.image(buf2)
 
-# Phase 3: Disruption Simulation & Risk Propagation
 import random
 
 st.markdown("---")
@@ -430,7 +411,6 @@ st.header("📉 Disruption Simulation & Risk Alerts")
 
 st.subheader("⏱ Delay Propagation to Downstream Nodes")
 
-# Compute delay to all sink nodes from each source
 sink_nodes = [n for n, d in G.nodes(data=True) if d['type'] == 'sink']
 source_nodes = [n for n, d in G.nodes(data=True) if d['type'] == 'source']
 delay_matrix = pd.DataFrame(index=source_nodes, columns=sink_nodes)
@@ -446,7 +426,6 @@ for src in source_nodes:
 
 st.dataframe(delay_matrix.style.format("{:.0f} days"))
 
-# --- Monte Carlo Simulation ---
 st.subheader("🎲 Monte Carlo Simulation")
 sim_runs = st.slider("Number of Simulation Runs", 100, 1000, 500, step=100)
 disruption_prob = st.slider("Delay Disruption Probability", 0.0, 1.0, 0.3)
@@ -469,7 +448,6 @@ for _ in range(sim_runs):
             except:
                 simulated_results[sink].append(np.nan)
 
-# --- Plot Risk Distribution ---
 for sink, delays in simulated_results.items():
     st.markdown(f"#### 📦 {sink} Delay Distribution")
     fig_sim, ax_sim = plt.subplots(figsize=(3, 2), dpi=120)
@@ -483,7 +461,6 @@ for sink, delays in simulated_results.items():
     fig_sim.savefig(buf_sim, format="png", bbox_inches="tight")
     st.image(buf_sim)
 
-# --- Alerts ---
 st.subheader("🚨 Risk Alerts")
 risk_threshold = st.slider("High Risk Delay Threshold (days)", 10, 40, 20)
 risk_alerts = []
@@ -500,7 +477,6 @@ for sink, delays in simulated_results.items():
 for alert in risk_alerts:
     st.markdown(alert)
 
-# --- Phase 4: Cost, Emissions & Risk Analysis ---
 import plotly.express as px
 import plotly.graph_objects as go
 from fpdf import FPDF
@@ -510,7 +486,6 @@ st.header("💸 Cost, Emissions & Risk Analysis")
 
 results = {}
 
-# --- Transport Cost Calculator ---
 st.subheader("🚛 Transportation Cost Calculator")
 distance = st.number_input("Distance (km)", min_value=0.0)
 cost_per_km = st.number_input("Cost per km", min_value=0.0)
@@ -519,7 +494,6 @@ transport_cost = distance * cost_per_km * quantity
 st.metric("Total Transport Cost", f"${transport_cost:,.2f}")
 results['Transport Cost ($)'] = transport_cost
 
-# --- Holding Cost Calculator ---
 st.subheader("🏬 Holding Cost Calculator")
 inventory_days = st.number_input("Inventory Days", min_value=0)
 unit_holding_cost = st.number_input("Per Unit Holding Cost ($)", min_value=0.0)
@@ -527,17 +501,15 @@ holding_cost = inventory_days * unit_holding_cost
 st.metric("Total Holding Cost", f"${holding_cost:,.2f}")
 results['Holding Cost ($)'] = holding_cost
 
-# --- Emissions Calculator ---
 st.subheader("🌍 Emissions Calculator")
 ton_km = st.number_input("Total Ton-Kilometers", min_value=0.0)
 emission_factor = st.number_input("Emission Factor (kg CO₂ / ton-km)", value=0.062)
 emissions = ton_km * emission_factor
 st.metric("CO₂ Emissions", f"{emissions:,.2f} kg")
-emissions_cost = emissions * 0.02  # $ per kg CO2
+emissions_cost = emissions * 0.02  
 results['CO₂ Emissions (kg)'] = emissions
 results['Emissions Cost ($)'] = emissions_cost
 
-# --- Node Risk Scores ---
 st.subheader("⚠️ Node Risk Score")
 risk_scores = {}
 centralities = nx.betweenness_centrality(G)
@@ -547,7 +519,6 @@ for node in G.nodes:
 
 risk_df = pd.DataFrame.from_dict(risk_scores, orient='index', columns=['Risk Score'])
 
-# --- Pie Chart: Cost Breakdown ---
 st.subheader("📊 Cost Breakdown")
 
 cost_data = {
@@ -568,7 +539,6 @@ if any(v > 0 for v in cost_data.values()):
 else:
     st.info("ℹ️ Enter values above to see Cost Breakdown.")
 
-# --- Sankey Diagram ---
 st.subheader("🔄 Supply Chain Flow (Sankey)")
 sankey_nodes = list(G.nodes)
 node_indices = {n: i for i, n in enumerate(sankey_nodes)}
@@ -588,7 +558,6 @@ fig_sankey = go.Figure(data=[go.Sankey(
 fig_sankey.update_layout(title_text="Supply Chain Cost Flow", font_size=10, height=350)
 st.plotly_chart(fig_sankey, use_container_width=True)
 
-# --- Risk Heatmap ---
 st.subheader("🔥 Node Risk Heatmap")
 fig_risk, ax_risk = plt.subplots(figsize=(4, 2.5))
 sns.heatmap(risk_df.T, annot=True, cmap="Reds", fmt=".2f", cbar=False, ax=ax_risk)
@@ -600,17 +569,14 @@ buf_risk = io.BytesIO()
 fig_risk.savefig(buf_risk, format="png", bbox_inches='tight')
 st.image(buf_risk)
 
-# --- Export Section ---
 st.subheader("💾 Export Results")
 
-# Combine all results into single DataFrame
 export_df = pd.DataFrame(results, index=["Phase 4 Summary"]).T
 export_df = export_df.round(2)
 
 csv = export_df.to_csv().encode('utf-8')
 st.download_button("⬇️ Download CSV", csv, "phase4_results.csv", "text/csv")
 
-# Generate PDF (simple table)
 if st.button("⬇️ Download PDF"):
     pdf = FPDF()
     pdf.add_page()
@@ -624,14 +590,12 @@ if st.button("⬇️ Download PDF"):
     st.download_button("📄 Download PDF", data=pdf_output.getvalue(),
                        file_name="phase4_summary.pdf", mime="application/pdf")
 
-# --- Phase 5: Advanced Analytics Dashboard ---
 import plotly.express as px
 import seaborn as sns
 
 st.markdown("---")
 st.header("📊 Advanced Analytics Dashboard")
 
-# --- Sidebar Section Switcher ---
 section = st.sidebar.radio("📊 Dashboard Sections", [
     "🧠 Forecast",
     "🛰 Simulation",
@@ -640,7 +604,6 @@ section = st.sidebar.radio("📊 Dashboard Sections", [
     "🔍 Analytics"
 ])
 
-# ------------------ 🧠 Forecast ------------------
 if section == "🧠 Forecast":
     st.subheader("📈 Forecast Visualization (Zoomable + Interactive)")
 
@@ -669,26 +632,21 @@ if section == "🧠 Forecast":
         )
         st.plotly_chart(fig, use_container_width=True)
 
-# ------------------ 🛰 Simulation ------------------
 elif section == "🛰 Simulation":
     st.subheader("🛰 Live Digital Twin Simulation")
     st.markdown("✅ Controlled from Phase 2 tabs (Inventory + Delays)")
 
-# ------------------ 💥 Disruption Engine ------------------
 elif section == "💥 Disruption Engine":
     st.subheader("💥 Disruption Engine")
     st.markdown("✅ Monte Carlo Simulation & Risk Alerts handled in Phase 3")
 
-# ------------------ 📈 Optimization ------------------
 elif section == "📈 Optimization":
     st.subheader("🔧 Optimization Module (Coming Soon)")
     st.info("Here you'll simulate what-if delay/cost tradeoffs and optimize paths.")
 
-# ------------------ 🔍 Analytics ------------------
 elif section == "🔍 Analytics":
     st.subheader("📊 Advanced Analytics")
 
-    # --- Animated Time Series ---
     st.markdown("### 📽 Animated Time Series by Month")
     df_ani = df.copy()
     df_ani["month"] = df_ani["ds"].dt.strftime("%Y-%m")
@@ -698,9 +656,7 @@ elif section == "🔍 Analytics":
                       range_y=[0, df['y'].max() * 1.1], title="Monthly Average Demand Over Time")
     st.plotly_chart(fig_anim, use_container_width=True)
 
-    # --- Clustered Impact Reports ---
     st.markdown("### 🧪 Clustered Impact Heatmap (Product vs Region)")
-    # Dummy clusterable data for demo
     cluster_df = df_raw.copy()
     if 'region' not in cluster_df.columns:
         cluster_df['region'] = np.random.choice(['North', 'South', 'East', 'West'], size=len(cluster_df))
@@ -713,7 +669,6 @@ elif section == "🔍 Analytics":
     st.pyplot(fig_cluster)
 
 
-# --- Phase 6: What-If Optimization & Auto Grid Search ---
 import itertools
 from operator import itemgetter
 
@@ -722,7 +677,6 @@ st.header("🧪 Phase 6: What-If Optimization")
 
 st.subheader("📥 Scenario Inputs (Live-Linked to Phase 2 Sliders)")
 
-# Link demand spike to Forecast tab via session_state
 if "demand_spike_pct" not in st.session_state:
     st.session_state.demand_spike_pct = 20
 
@@ -790,7 +744,6 @@ else:
 
     df_opt = pd.DataFrame(results)
 
-    # Auto-optimization
     best_delay = df_opt.loc[df_opt["Avg Delay"].idxmin()]
     best_cost = df_opt.loc[df_opt["Cost Impact"].idxmin()]
 
@@ -799,7 +752,6 @@ else:
 
     st.dataframe(df_opt[["Port Delays", "Avg Delay", "Stockout %", "Cost Impact"]])
 
-    # Export
     st.download_button(
         "📁 Export Optimization Results CSV",
         data=df_opt.to_csv(index=False).encode(),
@@ -807,7 +759,6 @@ else:
         mime="text/csv"
     )
 
-    # 3D Plot
     st.subheader("📈 Optimization Landscape (3D Plot)")
     if len(ports_to_test) >= 2:
         import plotly.express as px
